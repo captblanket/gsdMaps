@@ -5,50 +5,59 @@
     $.fn.gsdMaps = function(options) {
         var opts = $.extend(true, {}, $.fn.gsdMaps.defaults, options);
 
-        // create the DIV which will hold our map
-        var $wrapper = $('<div />').attr(opts.wrapperAttrs).css(opts.wrapperCSS);
-
         // extract the parameters from the first IMG encountered
-        // and load the Google Maps JavaScript
         var g = extractParams($(this).attr('src'));
-        loadScript(g.key);
 
-        return this.each(function() {
-            var $this = $(this);
-            var $src = $this.attr('src');
-            $this.wrap($wrapper);
-            $this.css({'cursor' : 'pointer'});
+        // if g.key is present, parameters have been successfully extracted
+        // therefore we can proceed
+        if (g.key) {
 
-            $this.click(function() {
-                $this.css({'opacity' : '0.3'});
-                var gMapPars = parseParams($src);
+            // load the Google Maps JavaScript
+            loadScript(g.key);
 
-                // GMap2 constructor accepts only a DOM element, no jQuery sugar
-                var mapEl = $this.parent().get(0);
-                $(mapEl).css({'width' : gMapPars.width, 'height' : gMapPars.height});
+            // create our map-holding div
+            var $wrapper = $('<div />').attr(opts.wrapperAttrs).css(opts.wrapperCSS);
 
-                // init map
-                var map = new GMap2(mapEl);
+            return this.each(function() {
+                var $this = $(this);
+                var $src = $this.attr('src');
+                $this.wrap($wrapper);
+                $this.css({'cursor' : 'pointer'});
 
-                // init markers
-                map.setCenter(new GLatLng(gMapPars.latitude, gMapPars.longitude), gMapPars.zoom);
-                for (var i=0; i<gMapPars.markers.length; i++) {
-                    map.addOverlay(new GMarker(new GLatLng(gMapPars.markers[i].latitude, gMapPars.markers[i].longitude)));
-                }
+                $this.click(function() {
+                    $this.css({'opacity' : '0.3'});
+                    var gMapPars = parseParams($src);
 
-                // init controls
-                var mapControl = new GMapTypeControl();
-                map.addControl(mapControl);
-                map.addControl(new GLargeMapControl3D());
+                    // GMap2 constructor accepts only a DOM element, no jQuery sugar
+                    var mapEl = $this.parent().get(0);
+                    $(mapEl).css({'width' : gMapPars.width, 'height' : gMapPars.height});
+
+                    // init map
+                    var map = new GMap2(mapEl);
+                    map.setCenter(new GLatLng(gMapPars.latitude, gMapPars.longitude), gMapPars.zoom);
+
+                    // init markers
+                    if (gMapPars.markers) {
+                        for (var i=0; i<gMapPars.markers.length; i++) {
+                            map.addOverlay(new GMarker(new GLatLng(gMapPars.markers[i].latitude, gMapPars.markers[i].longitude)));
+                        }
+                    }
+
+                    // init controls
+                    var mapControl = new GMapTypeControl();
+                    map.addControl(mapControl);
+                    map.addControl(new GLargeMapControl3D());
+                });
             });
-        });
+
+        }
 
         // private function for debugging
         function debug($obj) {
             if (window.console && window.console.log) {
                 window.console.log($obj);
             }
-        };
+        }
 
         // this function loads Google Maps js
         function loadScript(apiKey) {
@@ -56,7 +65,7 @@
             script.attr('type', 'text/javascript');
             script.attr('src', 'http://maps.google.com/maps?file=api&v=2&key='+apiKey+'&async=2');
             script.appendTo('body');
-        };
+        }
 
         // basic parameter extraction;
         // however, all of them are strings
@@ -68,8 +77,16 @@
                 var keyVal = val.split('=');
                 paramHash[keyVal[0]] = keyVal[1];
             });
+            // basic parameters needed to call Google Maps API;
+            // without them the script should fail completely
+            var requiredParams = ['center', 'zoom', 'size', 'key'];
+            for (par in requiredParams) {
+                if (typeof paramHash[requiredParams[par]] !== 'string') {
+                    return false;
+                }
+            }
             return paramHash;
-        };
+        }
 
         // parse the extracted parameters 
         // because some of them should be integers, floats or booleans
@@ -132,7 +149,7 @@
                 }
             }
             return gMapParams;
-        };
+        }
 
     };
 
@@ -142,7 +159,7 @@
             'class' : 'map_holder'
         },
         wrapperCSS : {
-            'border'   : '1px solid black',
+            //'border'   : '1px solid black',
             'position' : 'relative',
             'display'  : 'inline-block',
             '*display' : 'inline',
