@@ -1,13 +1,21 @@
-;(function($) {
+(function($) {
 
     // gsdMaps plugin removes 'Static' from Google Static Maps!
     $.fn.gsdMaps = function(options) {
 
-        var opts = $.extend(true, {}, $.fn.gsdMaps.defaults, options),
-            $self = this,
-            // extract parameters from the first <img> encountered;
-            // we need the API key
-            g = extractParams($self.attr('src'));
+        if (this.length > 0) {
+
+            var opts = $.extend(true, {}, $.fn.gsdMaps.defaults, options),
+                $self = this,
+                // extract parameters from the first <img> encountered;
+                // we need the API key
+                g = extractParams($self.attr('src'));
+
+        } else {
+
+            return false;
+
+        }
 
         if (g.key) {
             // load the Google Maps JavaScript and call init
@@ -18,32 +26,36 @@
         $.fn.gsdMaps.init = function() {
 
             // create our map-holding div
-            var $wrapper = $('<div />').attr(opts.wrapperAttrs);
+            //var $wrapper = $('<div />').attr(opts.wrapperAttrs);
+            //var $mapHolder = $('<div />').attr(opts.mapHolderAttrs).css(opts.mapHolderCSS);
 
             $self.each(function() {
                 var $this = $(this);
                 var $src = $this.attr('src');
+
+                // create <div>s
+                var $wrapper = $('<div />').attr(opts.wrapperAttrs);
+                var $mapHolder = $('<div />').attr(opts.mapHolderAttrs).css(opts.mapHolderCSS);
+
+                // ...and apply them
                 $this.wrap($wrapper);
+                var $wrapEl = $this.parent();
+                $wrapEl.append($mapHolder);
+
                 $this.css({'cursor' : 'pointer'});
 
+                var gMapPars = parseParams($src);
+                var $mapEl = $this.next();
+
+                $wrapEl.css(opts.wrapperCSS);
+                $wrapEl.css({'width' : gMapPars.width, 'height' : gMapPars.height});
+                $mapEl.css({'width' : gMapPars.width, 'height' : gMapPars.height});
+                    
                 $this.click(function() {
-                
-                    var gMapPars = parseParams($src);
-                    var mapEl = $this.parent();
-                    
-                    if (opts.wrapperCSS.width && opts.wrapperCSS.height) {
-                        mapEl.css(opts.wrapperCSS);
-                    } else {
-                        mapEl.css({'width' : gMapPars.width, 'height' : gMapPars.height});
-                    }
-                    $this.css({'opacity' : '0.3'});
-                    
-                    // GMap2 constructor accepts only a DOM element, no jQuery sugar
-                    //var mapEl = $this.parent().get(0);
-                    //$(mapEl).css({'width' : gMapPars.width, 'height' : gMapPars.height});
 
                     // init map
-                    var map = new GMap2(mapEl.get(0));
+                    // GMap2 constructor accepts only a DOM element, no jQuery sugar
+                    var map = new GMap2($mapEl.get(0));
                     map.setCenter(new GLatLng(gMapPars.latitude, gMapPars.longitude), gMapPars.zoom);
 
                     // init markers
@@ -59,7 +71,11 @@
                     map.addControl(new GLargeMapControl3D());
 
                 });
-                $this.colorbox({inline:true, href:$this.parent()});
+                
+                // load in colorbox
+                if (opts.colorbox) {
+                    $this.colorbox({inline:true, href:$mapEl.css({'position' : 'static', 'width' : opts.colorbox.width, 'height' : opts.colorbox.height})});
+                }
 
             });
 
@@ -156,25 +172,30 @@
             return gMapParams;
         }
 
-        // this is the main return - a reference to the wrapping <div>
-        // now you can chain stuff...
-        //debug(this);
-        //return $self;
-
     };
 
 
     // default options
     $.fn.gsdMaps.defaults = {
         wrapperAttrs : {
-            'class' : 'map_holder'
+            'class' : 'gsdmap'
         },
         wrapperCSS : {
-            //'border'   : '1px solid black',
             'position' : 'relative',
+            'overflow' : 'hidden',
             'display'  : 'inline-block',
             '*display' : 'inline',
-            '*zoom'    : '1',
+            '*zoom'    : '1'
+        },
+        mapHolderAttrs : {
+            'class' : 'map_holder'
+        },
+        mapHolderCSS : {
+            'position' : 'absolute',
+            'left'     : 0,
+            'top'      : 0
+        },
+        colorbox : {
             'width'    : 800,
             'height'   : 600
         }
